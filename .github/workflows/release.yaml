@@ -52,6 +52,14 @@ jobs:
           echo "Tag: $TAG"
           echo "Package Version: $PACKAGE_VERSION"
 
+      # If chart version is not equal to package version, fail the job
+      - name: Check Chart version
+        run: |
+          if [[ "${{ steps.version.outputs.version }}" != "${{ steps.version.outputs.package_version }}" ]]; then
+            echo "Chart version is not equal to package version"
+            exit 1
+          fi
+
       - name: Configure Git
         run: |
           git config user.name "$GITHUB_ACTOR"
@@ -69,26 +77,6 @@ jobs:
         run: |
           helm package . --destination .helm-packages --version "${{ steps.version.outputs.package_version }}"
           ls -la .helm-packages/
-
-      # - name: Create GitHub Pre-Release
-      #   uses: softprops/action-gh-release@v2
-      #   with:
-      #     tag_name: ${{ steps.version.outputs.tag }}
-      #     name: ${{ steps.version.outputs.tag }}
-      #     prerelease: true
-      #     body: |
-      #       ## Pre-release ${{ steps.version.outputs.tag }}
-
-      #       **Commit:** ${{ github.event.pull_request.head.sha }}
-      #       **Branch:** ${{ github.event.pull_request.head.ref }}
-      #       **PR:** #${{ github.event.pull_request.number }}
-
-      #       This is an automated pre-release build from a release branch.
-
-      #     files: |
-      #       .helm-packages/*.tgz
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -133,6 +121,14 @@ jobs:
 
           echo "Version: $VERSION"
           echo "Tag: $TAG"
+
+      # If chart version is not equal to package version, fail the job
+      - name: Check Chart version
+        run: |
+          if [[ "${{ steps.version.outputs.version }}" != "${{ steps.version.outputs.package_version }}" ]]; then
+            echo "Chart version is not equal to package version"
+            exit 1
+          fi
 
       - name: Configure Git
         run: |
