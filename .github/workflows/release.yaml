@@ -139,16 +139,16 @@ jobs:
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
-      - name: Update Chart.yaml version
-        run: |
-          sed -i "s/^version: .*/version: ${{ steps.version.outputs.version }}/" Chart.yaml
-          cat Chart.yaml
+      # - name: Update Chart.yaml version
+      #   run: |
+      #     sed -i "s/^version: .*/version: ${{ steps.version.outputs.version }}/" Chart.yaml
+      #     cat Chart.yaml
 
-      - name: Commit version update
-        run: |
-          git add Chart.yaml
-          git commit -m "chore: update version to ${{ steps.version.outputs.version }}" || echo "No changes to commit"
-          git push
+      # - name: Commit version update
+      #   run: |
+      #     git add Chart.yaml
+      #     git commit -m "chore: update version to ${{ steps.version.outputs.version }}" || echo "No changes to commit"
+      #     git push
 
       - name: Install Helm
         uses: azure/setup-helm@v4
