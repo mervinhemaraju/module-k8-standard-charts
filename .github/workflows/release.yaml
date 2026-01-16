@@ -42,7 +42,7 @@ jobs:
             exit 1
           fi
 
-          TAG="v${SHORT_SHA}"
+          TAG="v${VERSION}-${SHORT_SHA}"
           PACKAGE_VERSION="${VERSION}-${SHORT_SHA}"
 
           echo "tag=$TAG" >> $GITHUB_OUTPUT
