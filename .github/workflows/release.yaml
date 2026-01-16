@@ -34,12 +34,23 @@ jobs:
           echo "Branch: $BRANCH"
           echo "Commit SHA: $SHORT_SHA"
 
+          # Extract version from branch name (release/v0.1.0 -> 0.1.0)
+          if [[ "$BRANCH" =~ ^release/v(.+)$ ]]; then
+            VERSION="${BASH_REMATCH[1]}"
+          else
+            echo "Branch does not match expected pattern: release/vX.X.X"
+            exit 1
+          fi
+
           TAG="v${SHORT_SHA}"
+          PACKAGE_VERSION="${VERSION}-${SHORT_SHA}"
 
           echo "tag=$TAG" >> $GITHUB_OUTPUT
           echo "commit_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
+          echo "package_version=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
 
           echo "Tag: $TAG"
+          echo "Package Version: $PACKAGE_VERSION"
 
       - name: Configure Git
         run: |
@@ -56,7 +67,7 @@ jobs:
 
       - name: Package Helm Chart
         run: |
-          helm package . --destination .helm-packages --version "${{ steps.version.outputs.commit_sha }}"
+          helm package . --destination .helm-packages --version "${{ steps.version.outputs.package_version }}"
           ls -la .helm-packages/
 
       - name: Create GitHub Pre-Release
