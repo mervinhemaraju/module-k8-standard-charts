@@ -56,7 +56,7 @@ jobs:
 
       - name: Package Helm Chart
         run: |
-          helm package . --destination .helm-packages --version "0.0.0-${{ steps.version.outputs.commit_sha }}"
+          helm package . --destination .helm-packages --version "${{ steps.version.outputs.commit_sha }}"
           ls -la .helm-packages/
 
       - name: Create GitHub Pre-Release
