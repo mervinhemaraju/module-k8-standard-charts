@@ -61,7 +61,7 @@ jobs:
         run: |
 
           # Get the version from the Chart.yaml using yq
-          CHART_VERSION=$(yq e '.version' Chart.yaml)
+          CHART_VERSION=$(cat Chart.yaml | yq '.version')
 
           if [[ "${CHART_VERSION}" != "${{ steps.version.outputs.version }}" ]]; then
             echo "Chart version is not equal to package version"
@@ -140,7 +140,7 @@ jobs:
         run: |
 
           # Get the version from the Chart.yaml using yq
-          CHART_VERSION=$(yq e '.version' Chart.yaml)
+          CHART_VERSION=$(cat Chart.yaml | yq '.version')
 
           if [[ "${CHART_VERSION}" != "${{ steps.version.outputs.version }}" ]]; then
             echo "Chart version is not equal to package version"
