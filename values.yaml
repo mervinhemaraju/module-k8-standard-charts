@@ -1,0 +1,235 @@
+# Default values for plagueworks-k8-standard-charts
+# This is a YAML-formatted file.
+
+# -- Application name (required)
+name: ""
+
+# -- Number of replicas
+replicaCount: 1
+
+# -- Container image configuration
+image:
+  # -- Image repository
+  repository: ""
+  # -- Image tag (defaults to chart appVersion)
+  tag: ""
+  # -- Image pull policy
+  pullPolicy: Always
+
+# -- Container port
+port: 8080
+
+# -- Environment variables
+env: []
+# -- Environment variables from ConfigMaps or Secrets
+envFrom: []
+
+# -- Command override
+command: []
+# -- Args override
+args: []
+
+# -- Volume mounts for the container
+volumeMounts: []
+
+# -- Volumes for the pod
+volumes: []
+
+# -- Namespace configuration
+namespace:
+  # -- Create namespace if it doesn't exist
+  create: true
+  # -- Namespace name (defaults to .Values.name if not set)
+  name: ""
+  # -- Additional labels for namespace
+  labels: {}
+  # -- Annotations for namespace
+  annotations: {}
+
+# -- Common labels applied to all resources
+commonLabels: {}
+
+# -- Common annotations applied to all resources
+commonAnnotations: {}
+
+# -- Deployment configuration
+deployment:
+  # -- Enable deployment
+  enabled: true
+  # -- Revision history limit
+  revisionHistoryLimit: 3
+  # -- Deployment strategy
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  # -- Deployment annotations
+  annotations: {}
+  # -- Pod annotations
+  podAnnotations: {}
+  # -- Pod labels
+  podLabels: {}
+  # -- Pod security context
+  podSecurityContext: {}
+  # -- Container security context
+  securityContext: {}
+  # -- Service account name
+  serviceAccountName: ""
+  # -- Image pull secrets
+  imagePullSecrets: []
+  # -- Termination grace period in seconds
+  terminationGracePeriodSeconds: 30
+
+# -- Health checks configuration
+healthChecks:
+  # -- Enable health checks
+  enabled: true
+  # -- Liveness probe configuration
+  liveness:
+    enabled: true
+    # -- HTTP path for health check
+    path: /health
+    # -- Port for health check (defaults to .Values.port)
+    port: null
+    # -- Initial delay before starting probes
+    initialDelaySeconds: 15
+    # -- Period between probes
+    periodSeconds: 20
+    # -- Timeout for probe
+    timeoutSeconds: 5
+    # -- Number of failures before marking unhealthy
+    failureThreshold: 3
+    # -- Number of successes to mark healthy
+    successThreshold: 1
+  # -- Readiness probe configuration
+  readiness:
+    enabled: true
+    # -- HTTP path for health check
+    path: /health
+    # -- Port for health check (defaults to .Values.port)
+    port: null
+    # -- Initial delay before starting probes
+    initialDelaySeconds: 5
+    # -- Period between probes
+    periodSeconds: 10
+    # -- Timeout for probe
+    timeoutSeconds: 3
+    # -- Number of failures before marking not ready
+    failureThreshold: 3
+    # -- Number of successes to mark ready
+    successThreshold: 1
+  # -- Startup probe configuration
+  startup:
+    enabled: false
+    path: /health
+    port: null
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 30
+    successThreshold: 1
+
+# -- Resource limits and requests
+resources:
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+  limits:
+    cpu: "200m"
+    memory: "256Mi"
+
+# -- Node selector
+nodeSelector: {}
+
+# -- Tolerations
+tolerations: []
+
+# -- Affinity rules (raw affinity spec, overrides nodeAffinity and podAntiAffinity)
+affinity: {}
+
+# -- Node affinity configuration (convenience wrapper)
+nodeAffinity:
+  # -- Enable node affinity
+  enabled: false
+  # -- Required during scheduling (hard requirement)
+  # Example:
+  #   - key: kubernetes.io/arch
+  #     operator: In
+  #     values:
+  #       - amd64
+  required: []
+  # -- Preferred during scheduling (soft requirement)
+  # Example:
+  #   - key: node-type
+  #     operator: In
+  #     values:
+  #       - compute
+  #     weight: 100
+  preferred: []
+
+# -- Pod anti-affinity to spread pods across nodes
+podAntiAffinity:
+  # -- Enable pod anti-affinity
+  enabled: false
+  # -- Type: soft or hard
+  type: soft
+  # -- Topology key for anti-affinity
+  topologyKey: kubernetes.io/hostname
+
+# -- Service configuration
+service:
+  # -- Enable service
+  enabled: true
+  # -- Service type (ClusterIP, NodePort, LoadBalancer)
+  type: ClusterIP
+  # -- Service port
+  port: 80
+  # -- Target port (defaults to .Values.port)
+  targetPort: null
+  # -- Protocol
+  protocol: TCP
+  # -- Node port (only for NodePort type)
+  nodePort: null
+  # -- Additional service annotations
+  annotations: {}
+  # -- Additional service labels
+  labels: {}
+
+# -- Traefik IngressRoute configuration
+ingress:
+  # -- Enable ingress
+  enabled: false
+  # -- Hostname for the ingress
+  host: ""
+  # -- Entry points
+  entryPoints:
+    - websecure
+  # -- TLS configuration
+  tls:
+    # -- Enable TLS
+    enabled: true
+    # -- Cert resolver name
+    certResolver: le
+  # -- Additional annotations for ingress
+  # Example:
+  #   kubernetes.io/ingress.class: traefik
+  #   cert-manager.io/cluster-issuer: letsencrypt
+  annotations: {}
+  # -- Match rule (defaults to Host(`<host>`))
+  match: ""
+  # -- Middlewares to apply
+  # Example:
+  #   - name: rate-limit
+  #     namespace: traefik
+  middlewares: []
+  # -- External DNS configuration
+  externalDns:
+    # -- Enable external-dns annotations
+    enabled: false
+    # -- Target for external-dns
+    target: ""
+    # -- Enable Cloudflare proxy
+    cloudflareProxied: "true"
+    # -- Comment for Cloudflare
+    cloudflareComment: ""
