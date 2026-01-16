@@ -2,10 +2,9 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: {{ include "plagueworks-k8-standard-charts.namespace" . }}
+  name: {{ include "app-template.namespace" . }}
   labels:
-    {{- include "plagueworks-k8-standard-charts.labels" . | nindent 4 }}
-    category: application
+    {{- include "app-template.labels" . | nindent 4 }}
     {{- with .Values.namespace.labels }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
