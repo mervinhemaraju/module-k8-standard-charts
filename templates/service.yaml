@@ -1,0 +1,30 @@
+{{- if .Values.service.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "plagueworks-k8-standard-charts.fullname" . }}-service
+  namespace: {{ include "plagueworks-k8-standard-charts.namespace" . }}
+  labels:
+    {{- include "plagueworks-k8-standard-charts.labels" . | nindent 4 }}
+    {{- with .Values.service.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- if or .Values.commonAnnotations .Values.service.annotations }}
+  annotations:
+    {{- include "plagueworks-k8-standard-charts.annotations" . | nindent 4 }}
+    {{- with .Values.service.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    {{- include "plagueworks-k8-standard-charts.selectorLabels" . | nindent 4 }}
+  ports:
+    - protocol: {{ .Values.service.protocol }}
+      port: {{ .Values.service.port }}
+      targetPort: {{ include "plagueworks-k8-standard-charts.serviceTargetPort" . }}
+      {{- if and (eq .Values.service.type "NodePort") .Values.service.nodePort }}
+      nodePort: {{ .Values.service.nodePort }}
+      {{- end }}
+{{- end }}

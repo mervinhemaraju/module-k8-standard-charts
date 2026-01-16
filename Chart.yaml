@@ -1,0 +1,17 @@
+apiVersion: v2
+name: plagueworks-k8-standard-charts
+description: A Helm library chart for deploying standard Kubernetes applications
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+maintainers:
+  - name: Mervin Hemaraju
+    email: mervinhemaraju16@gmail.com
+keywords:
+  - kubernetes
+  - deployment
+  - traefik
+  - ingress
+home: https://github.com/mervinhemaraju/module-k8-standard-charts
+sources:
+  - https://github.com/mervinhemaraju/module-k8-standard-charts

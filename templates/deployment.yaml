@@ -1,0 +1,182 @@
+{{- if .Values.deployment.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "plagueworks-k8-standard-charts.fullname" . }}-deployment
+  namespace: {{ include "plagueworks-k8-standard-charts.namespace" . }}
+  labels:
+    {{- include "plagueworks-k8-standard-charts.labels" . | nindent 4 }}
+  {{- if or .Values.commonAnnotations .Values.deployment.annotations }}
+  annotations:
+    {{- include "plagueworks-k8-standard-charts.annotations" . | nindent 4 }}
+    {{- with .Values.deployment.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: {{ .Values.deployment.revisionHistoryLimit }}
+  {{- with .Values.deployment.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "plagueworks-k8-standard-charts.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "plagueworks-k8-standard-charts.selectorLabels" . | nindent 8 }}
+        {{- with .Values.deployment.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.deployment.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- with .Values.deployment.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.deployment.serviceAccountName }}
+      serviceAccountName: {{ .Values.deployment.serviceAccountName }}
+      {{- end }}
+      terminationGracePeriodSeconds: {{ .Values.deployment.terminationGracePeriodSeconds }}
+      {{- with .Values.deployment.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ include "plagueworks-k8-standard-charts.containerName" . }}
+          image: {{ include "plagueworks-k8-standard-charts.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with .Values.deployment.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.command }}
+          command:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.args }}
+          args:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if .Values.env }}
+          env:
+            {{- toYaml .Values.env | nindent 12 }}
+          {{- end }}
+          {{- with .Values.envFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            - containerPort: {{ .Values.port }}
+              protocol: TCP
+          {{- if .Values.healthChecks.enabled }}
+          {{- if .Values.healthChecks.liveness.enabled }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.healthChecks.liveness.path }}
+              port: {{ .Values.healthChecks.liveness.port | default .Values.port }}
+            initialDelaySeconds: {{ .Values.healthChecks.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.healthChecks.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.healthChecks.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.healthChecks.liveness.failureThreshold }}
+            successThreshold: {{ .Values.healthChecks.liveness.successThreshold }}
+          {{- end }}
+          {{- if .Values.healthChecks.readiness.enabled }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.healthChecks.readiness.path }}
+              port: {{ .Values.healthChecks.readiness.port | default .Values.port }}
+            initialDelaySeconds: {{ .Values.healthChecks.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.healthChecks.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.healthChecks.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.healthChecks.readiness.failureThreshold }}
+            successThreshold: {{ .Values.healthChecks.readiness.successThreshold }}
+          {{- end }}
+          {{- if .Values.healthChecks.startup.enabled }}
+          startupProbe:
+            httpGet:
+              path: {{ .Values.healthChecks.startup.path }}
+              port: {{ .Values.healthChecks.startup.port | default .Values.port }}
+            initialDelaySeconds: {{ .Values.healthChecks.startup.initialDelaySeconds }}
+            periodSeconds: {{ .Values.healthChecks.startup.periodSeconds }}
+            timeoutSeconds: {{ .Values.healthChecks.startup.timeoutSeconds }}
+            failureThreshold: {{ .Values.healthChecks.startup.failureThreshold }}
+            successThreshold: {{ .Values.healthChecks.startup.successThreshold }}
+          {{- end }}
+          {{- end }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.volumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.volumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if or .Values.affinity .Values.nodeAffinity.enabled .Values.podAntiAffinity.enabled }}
+      affinity:
+        {{- with .Values.affinity }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- if .Values.nodeAffinity.enabled }}
+        nodeAffinity:
+          {{- if .Values.nodeAffinity.required }}
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              {{- range .Values.nodeAffinity.required }}
+              - matchExpressions:
+                  - key: {{ .key }}
+                    operator: {{ .operator | default "In" }}
+                    values:
+                      {{- toYaml .values | nindent 22 }}
+              {{- end }}
+          {{- end }}
+          {{- if .Values.nodeAffinity.preferred }}
+          preferredDuringSchedulingIgnoredDuringExecution:
+            {{- range .Values.nodeAffinity.preferred }}
+            - weight: {{ .weight | default 100 }}
+              preference:
+                matchExpressions:
+                  - key: {{ .key }}
+                    operator: {{ .operator | default "In" }}
+                    values:
+                      {{- toYaml .values | nindent 22 }}
+            {{- end }}
+          {{- end }}
+        {{- end }}
+        {{- if .Values.podAntiAffinity.enabled }}
+        podAntiAffinity:
+          {{- if eq .Values.podAntiAffinity.type "hard" }}
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  {{- include "plagueworks-k8-standard-charts.selectorLabels" . | nindent 18 }}
+              topologyKey: {{ .Values.podAntiAffinity.topologyKey }}
+          {{- else }}
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    {{- include "plagueworks-k8-standard-charts.selectorLabels" . | nindent 20 }}
+                topologyKey: {{ .Values.podAntiAffinity.topologyKey }}
+          {{- end }}
+        {{- end }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
