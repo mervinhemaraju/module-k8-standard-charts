@@ -5,7 +5,6 @@ metadata:
   name: {{ include "plagueworks-k8-standard-charts.namespace" . }}
   labels:
     {{- include "plagueworks-k8-standard-charts.labels" . | nindent 4 }}
-    category: application
     {{- with .Values.namespace.labels }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
