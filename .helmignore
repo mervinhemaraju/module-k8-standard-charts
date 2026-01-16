@@ -1,0 +1,54 @@
+# Patterns to ignore when building packages.
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# GitHub
+.github/
+
+# Build artifacts
+.helm-packages/
+*.tgz
+
+# Editor/IDE
+.vscode/
+.idea/
+*.swp
+*.bak
+*.tmp
+*.orig
+*~
+.project
+*.tmproj
+*.sublime-project
+*.sublime-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Documentation (not needed in packaged chart)
+README.md
+README.md.gotmpl
+LICENSE
+CHANGELOG.md
+docs/
+
+# Examples (users reference these from repo, not package)
+examples/
+
+# CI/CD
+.gitlab-ci.yml
+.travis.yml
+Jenkinsfile
+Makefile
+
+# Testing
+tests/
+ci/
+*_test.yaml
+
+# Helm docs
+.helmdocs.yaml
