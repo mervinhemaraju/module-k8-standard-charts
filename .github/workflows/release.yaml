@@ -24,6 +24,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install yq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y yq
+
       - name: Extract version info
         id: version
         run: |
@@ -45,17 +50,20 @@ jobs:
           TAG="v${VERSION}-${SHORT_SHA}"
           PACKAGE_VERSION="${VERSION}-${SHORT_SHA}"
 
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
-          echo "commit_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "package_version=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
 
-          echo "Tag: $TAG"
+          echo "Version: $VERSION"
           echo "Package Version: $PACKAGE_VERSION"
 
       # If chart version is not equal to package version, fail the job
       - name: Check Chart version
         run: |
-          if [[ "${{ steps.version.outputs.version }}" != "${{ steps.version.outputs.package_version }}" ]]; then
+
+          # Get the version from the Chart.yaml using yq
+          CHART_VERSION=$(yq e '.version' Chart.yaml)
+
+          if [[ "${CHART_VERSION}" != "${{ steps.version.outputs.version }}" ]]; then
             echo "Chart version is not equal to package version"
             exit 1
           fi
@@ -102,6 +110,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install yq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y yq
+
       - name: Extract version from branch name
         id: version
         run: |
@@ -125,7 +138,11 @@ jobs:
       # If chart version is not equal to package version, fail the job
       - name: Check Chart version
         run: |
-          if [[ "${{ steps.version.outputs.version }}" != "${{ steps.version.outputs.package_version }}" ]]; then
+
+          # Get the version from the Chart.yaml using yq
+          CHART_VERSION=$(yq e '.version' Chart.yaml)
+
+          if [[ "${CHART_VERSION}" != "${{ steps.version.outputs.version }}" ]]; then
             echo "Chart version is not equal to package version"
             exit 1
           fi
