@@ -3,21 +3,22 @@ name: Release Helm Chart
 on:
     pull_request:
         types:
+            - opened
+            - synchronize # Triggers on new commits pushed to PR
             - closed
         branches:
             - main
-    push:
-        branches:
-            - "release/v*"
 
 permissions:
     contents: write
     packages: write
 
 jobs:
-    # Runs on every push to release/* branches - creates commit-based pre-release
+    # Runs on every push to an open PR from release/* branches - creates commit-based pre-release
     pre-release:
-        if: github.event_name == 'push'
+        if: |
+            github.event.action != 'closed' &&
+            startsWith(github.event.pull_request.head.ref, 'release/v')
         runs-on: ubuntu-latest
         steps:
             - name: Checkout
@@ -26,16 +27,17 @@ jobs:
             - name: Extract version info
               id: version
               run: |
-                  BRANCH="${GITHUB_REF#refs/heads/}"
-                  COMMIT_SHA="${GITHUB_SHA::7}"
+                  BRANCH="${{ github.event.pull_request.head.ref }}"
+                  COMMIT_SHA="${{ github.event.pull_request.head.sha }}"
+                  SHORT_SHA="${COMMIT_SHA::7}"
 
                   echo "Branch: $BRANCH"
-                  echo "Commit SHA: $COMMIT_SHA"
+                  echo "Commit SHA: $SHORT_SHA"
 
-                  TAG="v${COMMIT_SHA}"
+                  TAG="v${SHORT_SHA}"
 
                   echo "tag=$TAG" >> $GITHUB_OUTPUT
-                  echo "commit_sha=$COMMIT_SHA" >> $GITHUB_OUTPUT
+                  echo "commit_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
 
                   echo "Tag: $TAG"
 
@@ -66,8 +68,9 @@ jobs:
                   body: |
                       ## Pre-release ${{ steps.version.outputs.tag }}
 
-                      **Commit:** ${{ github.sha }}
-                      **Branch:** ${{ github.ref_name }}
+                      **Commit:** ${{ github.event.pull_request.head.sha }}
+                      **Branch:** ${{ github.event.pull_request.head.ref }}
+                      **PR:** #${{ github.event.pull_request.number }}
 
                       This is an automated pre-release build from a release branch.
 
@@ -79,7 +82,7 @@ jobs:
     # Runs when release/* PR is merged to main - creates final release
     release:
         if: |
-            github.event_name == 'pull_request' &&
+            github.event.action == 'closed' &&
             github.event.pull_request.merged == true &&
             startsWith(github.event.pull_request.head.ref, 'release/v')
         runs-on: ubuntu-latest
