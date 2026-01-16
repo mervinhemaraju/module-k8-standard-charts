@@ -4,7 +4,7 @@ on:
   pull_request:
     types:
       - opened
-      - synchronize # Triggers on new commits pushed to PR
+      - synchronize
       - closed
     branches:
       - main
@@ -14,7 +14,7 @@ permissions:
   packages: write
 
 jobs:
-  # Runs on every push to an open PR from release/* branches - creates commit-based pre-release
+  # PRE-RELEASE: Runs on open PRs from release/v* branches
   pre-release:
     if: |
       github.event.action != 'closed' &&
@@ -28,34 +28,37 @@ jobs:
         id: version
         run: |
           BRANCH="${{ github.event.pull_request.head.ref }}"
-          COMMIT_SHA="${{ github.event.pull_request.head.sha }}"
-          SHORT_SHA="${COMMIT_SHA::7}"
-
-          echo "Branch: $BRANCH"
-          echo "Commit SHA: $SHORT_SHA"
+          SHORT_SHA="${GITHUB_SHA::7}"
 
           # Extract version from branch name (release/v0.1.0 -> 0.1.0)
           if [[ "$BRANCH" =~ ^release/v(.+)$ ]]; then
             VERSION="${BASH_REMATCH[1]}"
           else
-            echo "Branch does not match expected pattern: release/vX.X.X"
+            echo "::error::Branch name $BRANCH does not match release/vX.X.X"
             exit 1
           fi
 
-          TAG="v${VERSION}-${SHORT_SHA}"
           PACKAGE_VERSION="${VERSION}-${SHORT_SHA}"
 
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
-          echo "commit_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "package_version=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
 
-          echo "Tag: $TAG"
+          echo "Base Version: $VERSION"
           echo "Package Version: $PACKAGE_VERSION"
 
-      - name: Configure Git
+      - name: Check Chart version
         run: |
-          git config user.name "$GITHUB_ACTOR"
-          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+          # Use 'eval' to ensure we get a raw string without quotes from yq
+          CHART_VERSION=$(yq eval '.version' Chart.yaml)
+          EXPECTED_VERSION="${{ steps.version.outputs.version }}"
+
+          echo "Chart.yaml version: $CHART_VERSION"
+          echo "Expected version: $EXPECTED_VERSION"
+
+          if [[ "$CHART_VERSION" != "$EXPECTED_VERSION" ]]; then
+            echo "::error::Version mismatch! Chart.yaml has ($CHART_VERSION) but branch is ($EXPECTED_VERSION). Please update Chart.yaml."
+            exit 1
+          fi
 
       - name: Install Helm
         uses: azure/setup-helm@v4
@@ -67,28 +70,8 @@ jobs:
 
       - name: Package Helm Chart
         run: |
+          # We use the package_version (with SHA) for the .tgz filename
           helm package . --destination .helm-packages --version "${{ steps.version.outputs.package_version }}"
-          ls -la .helm-packages/
-
-      # - name: Create GitHub Pre-Release
-      #   uses: softprops/action-gh-release@v2
-      #   with:
-      #     tag_name: ${{ steps.version.outputs.tag }}
-      #     name: ${{ steps.version.outputs.tag }}
-      #     prerelease: true
-      #     body: |
-      #       ## Pre-release ${{ steps.version.outputs.tag }}
-
-      #       **Commit:** ${{ github.event.pull_request.head.sha }}
-      #       **Branch:** ${{ github.event.pull_request.head.ref }}
-      #       **PR:** #${{ github.event.pull_request.number }}
-
-      #       This is an automated pre-release build from a release branch.
-
-      #     files: |
-      #       .helm-packages/*.tgz
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -101,7 +84,7 @@ jobs:
         run: |
           helm push .helm-packages/*.tgz oci://ghcr.io/${{ github.repository_owner }}
 
-  # Runs when release/* PR is merged to main - creates final release
+  # RELEASE: Runs when release/v* PR is merged to main
   release:
     if: |
       github.event.action == 'closed' &&
@@ -118,50 +101,36 @@ jobs:
         id: version
         run: |
           BRANCH="${{ github.event.pull_request.head.ref }}"
-          echo "Branch: $BRANCH"
 
           if [[ "$BRANCH" =~ ^release/v(.+)$ ]]; then
             VERSION="${BASH_REMATCH[1]}"
             TAG="v${VERSION}"
           else
-            echo "Branch does not match expected pattern: release/vX.X.X"
+            echo "::error::Branch name $BRANCH does not match release/vX.X.X"
             exit 1
           fi
 
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "tag=$TAG" >> $GITHUB_OUTPUT
 
-          echo "Version: $VERSION"
-          echo "Tag: $TAG"
-
-      - name: Configure Git
+      - name: Check Chart version
         run: |
-          git config user.name "$GITHUB_ACTOR"
-          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+          CHART_VERSION=$(yq eval '.version' Chart.yaml)
+          EXPECTED_VERSION="${{ steps.version.outputs.version }}"
 
-      # - name: Update Chart.yaml version
-      #   run: |
-      #     sed -i "s/^version: .*/version: ${{ steps.version.outputs.version }}/" Chart.yaml
-      #     cat Chart.yaml
-
-      # - name: Commit version update
-      #   run: |
-      #     git add Chart.yaml
-      #     git commit -m "chore: update version to ${{ steps.version.outputs.version }}" || echo "No changes to commit"
-      #     git push
+          if [[ "$CHART_VERSION" != "$EXPECTED_VERSION" ]]; then
+            echo "::error::Final check failed. Chart.yaml version ($CHART_VERSION) must match $EXPECTED_VERSION."
+            exit 1
+          fi
 
       - name: Install Helm
         uses: azure/setup-helm@v4
         with:
           version: v3.14.0
 
-      - name: Lint Helm Chart
-        run: helm lint .
-
       - name: Package Helm Chart
         run: |
           helm package . --destination .helm-packages
-          ls -la .helm-packages/
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -171,16 +140,14 @@ jobs:
           body: |
             ## Helm Chart ${{ steps.version.outputs.tag }}
 
+            Published to GHCR.
+
             ### Installation
-
             ```bash
-            helm install my-app oci://ghcr.io/${{ github.repository_owner }}/plagueworks-k8-standard-charts \
-              --version ${{ steps.version.outputs.version }} \
-              -f values.yaml
+            helm install my-app oci://ghcr.io/${{ github.repository_owner }}/YOUR_CHART_NAME \
+              --version ${{ steps.version.outputs.version }}
             ```
-
-          files: |
-            .helm-packages/*.tgz
+          files: .helm-packages/*.tgz
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
