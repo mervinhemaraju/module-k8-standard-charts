@@ -233,3 +233,14 @@ ingress:
     cloudflareProxied: "true"
     # -- Comment for Cloudflare
     cloudflareComment: ""
+
+# -- ConfigMap configuration
+configMap:
+  # -- Enable ConfigMap creation
+  enabled: false
+  # -- ConfigMap annotations
+  annotations: {}
+  # -- ConfigMap data (key-value pairs)
+  data: {}
+  # -- Glob pattern to include files (e.g., "data/v1/*.json")
+  filesGlob: ""
